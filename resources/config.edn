@@ -1,0 +1,5 @@
+{:cassandra
+ {:servers ["localhost"]
+  :keyspace :temptrip
+  :replication-strategy {:replication {:class "SimpleStrategy" :replication_factor 1}}
+  :verify? false}}

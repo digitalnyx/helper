@@ -1,0 +1,7 @@
+"No.","Time","Source","Destination","Protocol","Length","Info"
+"2341","52.052635000","127.0.0.1","127.0.0.1","WOW","100","Authentication Logon Challenge"
+"2343","52.054341000","127.0.0.1","127.0.0.1","WOW","175","Authentication Logon Challenge"
+"2345","52.066401000","127.0.0.1","127.0.0.1","WOW","131","Authentication Logon Proof"
+"2347","52.066995000","127.0.0.1","127.0.0.1","WOW","82","Authentication Logon Proof"
+"2349","52.068592000","127.0.0.1","127.0.0.1","WOW","61","Realm List"
+"2351","52.069741000","127.0.0.1","127.0.0.1","WOW","100","Realm List"

@@ -1,0 +1,5 @@
+{:realm-server "127.0.0.1"
+ :accounts [{:name "hosehead10"
+             :password "wanker"
+             :character "Roxwell"
+             :class "warlock"}]}
