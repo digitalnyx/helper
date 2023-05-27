@@ -24,7 +24,7 @@
 
 (ns helper.auth.srp6
   (:require
-   [helper.packet.utils :refer :all]
+   [helper.utils.conversions :refer :all]
    [clojure.string :refer [upper-case]]
    [taoensso.timbre :as timbre])
   (:import
@@ -48,6 +48,25 @@
    ;; Bytes are read correctly as they are stored in
    ;; big endian on *nix.
    #(.getBytes ^String % "UTF-8")})
+
+(extend clojure.lang.PersistentVector
+  OpenSSL-bytes
+  {:openssl-bytes
+   ;; Assume bytes are correct endian
+   #(seq->bytes %)})
+
+(extend clojure.lang.PersistentList
+  OpenSSL-bytes
+  {:openssl-bytes
+   ;; Assume bytes are correct endian
+   #(seq->bytes %)})
+
+(def ^{:private true} bytes-class (Class/forName "[B"))
+(extend bytes-class
+  OpenSSL-bytes
+  {:openssl-bytes
+   ;; Already in the correct format
+   (fn [bytes] bytes)})
 
 (defn sha-1
   "SHA-1 hash specific to this application (WoW)."
@@ -98,7 +117,7 @@
 (defn- ^BigInteger compute-x
   "SRP value 'x' is a salt of the user hash: H(s | H(I | ':' | P))"
   [^String user ^String pass ^BigInteger salt]
-   (compute-salted-hash
+  (compute-salted-hash
     salt
     (compute-user-hash user pass)))
 
@@ -129,9 +148,11 @@
 (defn- ^BigInteger compute-session-key
   "Must be a WoW specific step"
   [^BigInteger S]
-  (let [S-evens (bytes->big-num (seq->bytes (take-nth 2 (big-num->bytes S))))
+  (let [S-evens (bytes->big-num 
+                 (seq->bytes (take-nth 2 (big-num->bytes S))))
         S-evens-hash (big-num->bytes (sha-1 S-evens))
-        S-odds  (bytes->big-num (seq->bytes (take-nth 2 (rest (big-num->bytes S)))))
+        S-odds  (bytes->big-num 
+                 (seq->bytes (take-nth 2 (rest (big-num->bytes S)))))
         S-odds-hash  (big-num->bytes (sha-1 S-odds))]
      (bytes->big-num
        (seq->bytes
@@ -149,14 +170,20 @@
   [^BigInteger A]
   (sha-1 A))
 
+(defn- ^BigInteger compute-crc
+  "Random 20 byte value for now..."
+  []
+  (BigInteger. (* 20 8) (java.util.Random.)))
+
 (defn do-srp
   [user pass challenge]
-  (debug "B: " (.toString ^BigInteger (:B challenge) 16))
-  (debug "g: " (.toString ^BigInteger (:g challenge) 16))
-  (debug "N: " (.toString ^BigInteger (:N challenge) 16))
-  (debug "s: " (.toString ^BigInteger (:s challenge) 16))
-  ;;(debug "unk3: " (.toString ^BigInteger (:unk3 challenge) 16))
-
+  (comment
+   (debug "B: " (.toString ^BigInteger (:B challenge) 16))
+   (debug "g: " (.toString ^BigInteger (:g challenge) 16))
+   (debug "N: " (.toString ^BigInteger (:N challenge) 16))
+   (debug "s: " (.toString ^BigInteger (:s challenge) 16))
+   ;;(debug "unk3: " (.toString ^BigInteger (:unk3 challenge) 16))
+   )
   (let [a (compute-a)
         x (compute-x user pass (:s challenge))
         v (compute-v (:g challenge) x (:N challenge))
@@ -164,22 +191,42 @@
         u (compute-u A (:B challenge))
         S (compute-S (:B challenge) (compute-k) v x (:N challenge) u a)
         s-key (compute-session-key S)
-        c-key (reverse (big-num->bytes s-key))
+        ;; c-key (big-num->bytes s-key) ;; K
+        c-key (reverse (big-num->bytes s-key)) ;; K
         user2 (compute-user2-hash user)
         Ng (compute-N-g-hash (:N challenge) (:g challenge))
         M1 (compute-M1 A (:B challenge) (:s challenge) Ng user2 s-key)]
 
-    (debug "a: " (.toString ^BigInteger a 16))
-    (debug "x: " (.toString ^BigInteger x 16))
-    (debug "v: " (.toString ^BigInteger v 16))
-    (debug "A: " (.toString ^BigInteger A 16))
-    (debug "u: " (.toString ^BigInteger u 16))
-    (debug "S: " (.toString ^BigInteger S 16))
-    (debug "s-key: " (.toString ^BigInteger s-key 16))
-    (debug "Ng: " (.toString ^BigInteger Ng 16))
-    (debug "M1: " (.toString ^BigInteger M1 16))
+    (comment
+     (debug "a: " (.toString ^BigInteger a 16))
+     (debug "x: " (.toString ^BigInteger x 16))
+     (debug "v: " (.toString ^BigInteger v 16))
+     (debug "A: " (.toString ^BigInteger A 16))
+     (debug "u: " (.toString ^BigInteger u 16))
+     (debug "S: " (.toString ^BigInteger S 16))
+     (debug "s-key: " (.toString ^BigInteger s-key 16))
+     (debug "Ng: " (.toString ^BigInteger Ng 16))
+     (debug "M1: " (.toString ^BigInteger M1 16)))
 
-    {:A A :M1 M1 :S S 
+    {:I (upper-case user)
+     :a a :x x :v v :Ng Ng
+     :A A :u u :M1 M1 :S S 
+     :crc (compute-crc)
      :session-key s-key
      :crypto-key c-key}
     ))
+
+(defn do-world-proof
+  [srp-vals server-seed]
+  (let [client-seed 
+        (BigInteger. (* 4 8) (java.util.Random.))
+        t (seq->bytes [0 0 0 0])]
+   {:client-seed client-seed
+    :proof
+    (sha-1 
+     (:I srp-vals)
+     t
+     client-seed
+     server-seed
+     (:crypto-key srp-vals))}))
+

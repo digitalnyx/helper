@@ -2,7 +2,7 @@
   (:require 
    [clojure.test :refer :all]
    [helper.auth.crypto :refer :all]
-   [helper.packet.utils :refer :all]))
+   [helper.utils.conversions :refer :all]))
 
 ;; key is the SRP s-key value.
 ;; Need to check if reversed on our (client) side.

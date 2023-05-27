@@ -11,17 +11,23 @@
                  [org.clojure/core.async "0.2.374"]
                  [org.clojure/tools.cli "0.3.3"]
                  [com.taoensso/timbre "4.3.1"]
-                 [aleph "0.4.1"]
-                 [gloss "0.2.5"]
+                 ;[potemkin "0.4.4"]
+                 [aleph "0.4.3"]
+                 [gloss "0.2.6"]
+                 [byte-streams "0.2.2"]
                  [mount "0.1.10"]
                  [cprop "0.1.7"]]
   
   :global-vars {*warn-on-reflection* true
                 *unchecked-math* true}
   
-  :javac-options ["-XX:+TieredCompilation" "-XX:+AggressiveOpts"]
+  :javac-options ["-XX:+TieredCompilation" 
+                  "-XX:+AggressiveOpts"]
   
-  :jvm-opts ["-server" "-Djava.awt.headless=true" "-Djava.net.preferIPv4Stack=true" "-Dsun.net.inetaddr.ttl=60"]
+  :jvm-opts ["-server" 
+             "-Djava.awt.headless=true" 
+             "-Djava.net.preferIPv4Stack=true" 
+             "-Dsun.net.inetaddr.ttl=60"]
   
   :min-lein-version "2.0.0"
 

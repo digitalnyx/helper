@@ -1,0 +1,1 @@
+(tcp.dstport == 3724 || tcp.srcport == 3724 || tcp.dstport == 8085 || tcp.srcport == 8085) && tcp.flags.push == 1
